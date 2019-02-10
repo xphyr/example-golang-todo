@@ -9,6 +9,8 @@ The frontend was copy and pasted from the TodoMVC project (backbone).
 
 Pull requests are welcomed and **encouraged**!
 
+Modified to use the Microsoft SQL Server driver from here: https://github.com/denisenkom/go-mssqldb 
+
 ## Getting started
 
 Steps for getting up and running,
@@ -31,6 +33,11 @@ Steps for getting up and running,
     ```
 
 4. Setup a database
+
+## MS SQL Server Instructions
+
+
+## MySQL Server Instructions
 
     The project expects a MySQL sever to be accessible via,
 

@@ -3,11 +3,13 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
 	"regexp"
+
+	_ "github.com/denisenkom/go-mssqldb"
 )
 
 // net/http based router
@@ -42,12 +44,12 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // todo "Object"
 type Todo struct {
-	Id           int    `json:"Id,sting"`
-	Title        string `json:"Title"`
-	Category     string `json:"Category"`
+	Id       int    `json:"Id,sting"`
+	Title    string `json:"Title"`
+	Category string `json:"Category"`
 	// Dt_created   string `json:"Dt_created"`
 	// Dt_completed string `json:"Dt_completed"`
-	State        string `json:"State"`
+	State string `json:"State"`
 }
 
 // store "context" values and connections in the server struct
@@ -55,8 +57,32 @@ type Server struct {
 	db *sql.DB
 }
 
+var (
+	debug    = flag.Bool("debug", false, "enable debugging")
+	password = flag.String("password", "", "the database password")
+	database = flag.String("database", "", "the database name")
+	port     = flag.Int("port", 1433, "the database port")
+	server   = flag.String("server", "", "the database server")
+	user     = flag.String("user", "", "the database user")
+)
+
 func main() {
-	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/golang_todo_dev")
+	flag.Parse()
+
+	if *debug {
+		fmt.Printf(" password:%s\n", *password)
+		fmt.Printf(" port:%d\n", *port)
+		fmt.Printf(" server:%s\n", *server)
+		fmt.Printf(" database:%s\n", *database)
+		fmt.Printf(" user:%s\n", *user)
+	}
+
+	connString := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s", *server, *user, *password, *port, *database)
+	if *debug {
+		fmt.Printf(" connString:%s\n", connString)
+	}
+
+	db, err := sql.Open("mssql", connString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,7 +122,7 @@ func (s *Server) todoIndex(res http.ResponseWriter, req *http.Request) {
 	var todos []*Todo
 
 	rows, err := s.db.Query("SELECT Id, Title, Category, State FROM Todo")
-	error_check(res, err)
+	errorCheck(res, err)
 	for rows.Next() {
 		todo := &Todo{}
 		rows.Scan(&todo.Id, &todo.Title, &todo.Category, &todo.State)
@@ -117,7 +143,7 @@ func (s *Server) todoCreate(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer req.Body.Close()
-	
+
 	result, err := s.db.Exec("INSERT INTO Todo(Title, Category, State) VALUES(?, ?, ?)", todo.Title, todo.Category, todo.State)
 	if err != nil {
 		fmt.Println("ERROR saving to db - ", err)
@@ -172,14 +198,14 @@ func jsonResponse(res http.ResponseWriter, data interface{}) {
 	res.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	payload, err := json.Marshal(data)
-	if error_check(res, err) {
+	if errorCheck(res, err) {
 		return
 	}
 
 	fmt.Fprintf(res, string(payload))
 }
 
-func error_check(res http.ResponseWriter, err error) bool {
+func errorCheck(res http.ResponseWriter, err error) bool {
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return true
