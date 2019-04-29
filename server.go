@@ -149,9 +149,9 @@ func (s *Server) todoCreate(res http.ResponseWriter, req *http.Request) {
 		fmt.Println("ERROR saving to db - ", err)
 	}
 
-	Id64, err := result.LastInsertId()
-	Id := int(Id64)
-	todo = &Todo{Id: Id}
+	ID64, err := result.LastInsertId()
+	ID := int(ID64)
+	todo = &Todo{Id: ID}
 
 	s.db.QueryRow("SELECT State, Title, Category FROM Todo WHERE Id=?", todo.Id).Scan(&todo.State, &todo.Title, &todo.Category)
 
@@ -189,9 +189,13 @@ func (s *Server) todoUpdate(res http.ResponseWriter, req *http.Request) {
 
 func (s *Server) todoDelete(res http.ResponseWriter, req *http.Request) {
 	r, _ := regexp.Compile(`\d+$`)
-	Id := r.FindString(req.URL.Path)
-	s.db.Exec("DELETE FROM Todo WHERE Id=?", Id)
-	res.WriteHeader(200)
+	ID := r.FindString(req.URL.Path)
+	_, err := s.db.Exec("DELETE FROM Todo WHERE Id=?", ID)
+	if err != nil {
+		res.WriteHeader(500)
+	} else {
+		res.WriteHeader(200)
+	}
 }
 
 func jsonResponse(res http.ResponseWriter, data interface{}) {
@@ -202,7 +206,7 @@ func jsonResponse(res http.ResponseWriter, data interface{}) {
 		return
 	}
 
-	fmt.Fprintf(res, string(payload))
+	fmt.Fprint(res, string(payload))
 }
 
 func errorCheck(res http.ResponseWriter, err error) bool {

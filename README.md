@@ -2,8 +2,7 @@
 
 Simple Todo List web app.
 
-**The backend is written in Go using the Standard
-Library, only**.
+**The backend is written in Go using the Standard Library, only**.
 
 The frontend was copy and pasted from the TodoMVC project (backbone).
 
