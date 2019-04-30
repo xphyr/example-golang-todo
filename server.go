@@ -70,23 +70,16 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/todos/", server.todoIndex).Methods("GET")
-	// reHandler.HandleFunc("/todos/$", "POST", server.todoCreate)
 	r.HandleFunc("/todos/", server.todoCreate).Methods("POST")
-	// reHandler.HandleFunc("/todos/[0-9]+$", "GET", server.todoShow)
 	r.HandleFunc("/todos/{id:[0-9]+}", server.todoShow).Methods("GET")
-	// reHandler.HandleFunc("/todos/[0-9]+$", "PUT", server.todoUpdate)
 	r.HandleFunc("/todos/{id:[0-9]+}", server.todoUpdate).Methods("PUT")
-	// reHandler.HandleFunc("/todos/[0-9]+$", "DELETE", server.todoDelete)
 	r.HandleFunc("/todos/{id:[0-9]+}", server.todoDelete).Methods("DELETE")
 
-	// reHandler.HandleFunc(".*.[js|css|png|eof|svg|ttf|woff]", "GET", server.assets)
-	// r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./public"))))
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(box)))
 
 	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
 	http.Handle("/", loggedRouter)
 	fmt.Println("Starting server on port 3000")
-	// http.ListenAndServe(":3000", loggedRouter)
 	http.ListenAndServe(":3000", nil)
 }
 
