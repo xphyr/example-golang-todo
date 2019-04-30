@@ -35,6 +35,14 @@ Steps for getting up and running,
 
 ## MS SQL Server Instructions
 
+```
+CREATE TABLE Todo (
+  Id          int IDENTITY(1,1) PRIMARY KEY,
+  Title       varchar(255) DEFAULT NULL,
+  Category    varchar(255) DEFAULT NULL,
+  State       varchar(255) DEFAULT NULL
+);
+```
 
 ## MySQL Server Instructions
 
