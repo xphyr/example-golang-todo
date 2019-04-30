@@ -24,3 +24,5 @@ _testmain.go
 *.prof
 
 example-golang-todo
+
+dist/*
