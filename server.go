@@ -7,40 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 
 	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/gobuffalo/packr"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
-
-// net/http based router
-type route struct {
-	pattern *regexp.Regexp
-	verb    string
-	handler http.Handler
-}
-
-type RegexpHandler struct {
-	routes []*route
-}
-
-func (h *RegexpHandler) Handler(pattern *regexp.Regexp, verb string, handler http.Handler) {
-	h.routes = append(h.routes, &route{pattern, verb, handler})
-}
-
-func (h *RegexpHandler) HandleFunc(r string, v string, handler func(http.ResponseWriter, *http.Request)) {
-	re := regexp.MustCompile(r)
-	h.routes = append(h.routes, &route{re, v, http.HandlerFunc(handler)})
-}
-
-func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	for _, route := range h.routes {
-		if route.pattern.MatchString(r.URL.Path) && route.verb == r.Method {
-			route.handler.ServeHTTP(w, r)
-			return
-		}
-	}
-	http.NotFound(w, r)
-}
 
 // todo "Object"
 type Todo struct {
@@ -77,6 +51,8 @@ func main() {
 		fmt.Printf(" user:%s\n", *user)
 	}
 
+	box := packr.NewBox("./public/")
+
 	connString := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s", *server, *user, *password, *port, *database)
 	if *debug {
 		fmt.Printf(" connString:%s\n", connString)
@@ -91,29 +67,27 @@ func main() {
 
 	server := &Server{db: db}
 
-	reHandler := new(RegexpHandler)
+	r := mux.NewRouter()
 
-	reHandler.HandleFunc("/todos/$", "GET", server.todoIndex)
-	reHandler.HandleFunc("/todos/$", "POST", server.todoCreate)
-	reHandler.HandleFunc("/todos/[0-9]+$", "GET", server.todoShow)
-	reHandler.HandleFunc("/todos/[0-9]+$", "PUT", server.todoUpdate)
-	reHandler.HandleFunc("/todos/[0-9]+$", "DELETE", server.todoDelete)
+	r.HandleFunc("/todos/", server.todoIndex).Methods("GET")
+	// reHandler.HandleFunc("/todos/$", "POST", server.todoCreate)
+	r.HandleFunc("/todos/", server.todoCreate).Methods("POST")
+	// reHandler.HandleFunc("/todos/[0-9]+$", "GET", server.todoShow)
+	r.HandleFunc("/todos/{id:[0-9]+}", server.todoShow).Methods("GET")
+	// reHandler.HandleFunc("/todos/[0-9]+$", "PUT", server.todoUpdate)
+	r.HandleFunc("/todos/{id:[0-9]+}", server.todoUpdate).Methods("PUT")
+	// reHandler.HandleFunc("/todos/[0-9]+$", "DELETE", server.todoDelete)
+	r.HandleFunc("/todos/{id:[0-9]+}", server.todoDelete).Methods("DELETE")
 
-	reHandler.HandleFunc(".*.[js|css|png|eof|svg|ttf|woff]", "GET", server.assets)
-	reHandler.HandleFunc("/", "GET", server.homepage)
+	// reHandler.HandleFunc(".*.[js|css|png|eof|svg|ttf|woff]", "GET", server.assets)
+	// r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./public"))))
+	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(box)))
 
+	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
+	http.Handle("/", loggedRouter)
 	fmt.Println("Starting server on port 3000")
-	http.ListenAndServe(":3000", reHandler)
-}
-
-// simple HTML/JS/CSS pages
-
-func (s *Server) homepage(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, "./index.html")
-}
-
-func (s *Server) assets(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, req.URL.Path[1:])
+	// http.ListenAndServe(":3000", loggedRouter)
+	http.ListenAndServe(":3000", nil)
 }
 
 // Todo CRUD
@@ -190,6 +164,7 @@ func (s *Server) todoUpdate(res http.ResponseWriter, req *http.Request) {
 func (s *Server) todoDelete(res http.ResponseWriter, req *http.Request) {
 	r, _ := regexp.Compile(`\d+$`)
 	ID := r.FindString(req.URL.Path)
+	fmt.Printf("Deleting: %v\n", ID)
 	_, err := s.db.Exec("DELETE FROM Todo WHERE Id=?", ID)
 	if err != nil {
 		res.WriteHeader(500)

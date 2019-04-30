@@ -26,3 +26,6 @@ _testmain.go
 example-golang-todo
 
 dist/*
+main-packr.go
+packrd/*
+a_main-packr.go
