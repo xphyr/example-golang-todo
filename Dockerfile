@@ -5,7 +5,7 @@ WORKDIR /build
 RUN go get -u github.com/gobuffalo/packr/packr
 RUN packr clean && packr
 RUN go build -o main .
-FROM alpine
+FROM alpine as runtime
 RUN adduser -S -D -H -h /app appuser
 RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 USER appuser
